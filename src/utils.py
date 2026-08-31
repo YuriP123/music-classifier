@@ -367,3 +367,23 @@ def build_sample_loader(audio_dir, Y, loader):
                 return self.X[:batch_size], self.Y[:batch_size]
 
     return SampleLoader
+
+def overlap(df, split_col="fma_split"):
+    train_artists = set(df.loc[df[split_col] == "training", "artist_id"])
+    val_artists = set(df.loc[df[split_col] == "validation", "artist_id"])
+    test_artists = set(df.loc[df[split_col] == "test", "artist_id"])
+
+    pairs = {
+        "trainnval": train_artists & val_artists,
+        "trainntest": train_artists & test_artists,
+        "valntest": val_artists & test_artists,
+    }
+
+    for name, overlap in pairs.items():
+        print(f"{name}: {len(overlap)} artists")
+
+    test_df = df[df[split_col] == "test"]
+    leaked = test_df["artist_id"].isin(train_artists).sum()
+    print(f"test tracks with artist also in train: {leaked} / {len(test_df)} "
+        f"({leaked / len(test_df):.1%})")
+
