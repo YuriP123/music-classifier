@@ -10,7 +10,6 @@ FMA tracks from the same artist share similar auditory features. A random split 
 
 The official FMA `training` / `validation` / `test` split keeps artists entirely on one side. Grouped 5-fold CV uses `StratifiedGroupKFold` on `artist_id` and never touches the official test set.
 
-
 | Model               | Random-split test (leaked) | After leakage fix | Grouped 5-fold CV |
 | ------------------- | -------------------------- | ----------------- | ----------------- |
 | LightGBM            | —                          | **0.591**         | 0.606             |
@@ -20,7 +19,6 @@ The official FMA `training` / `validation` / `test` split keeps artists entirely
 | k-NN (84 features)  | 0.577                      | 0.504             | 0.529             |
 | k-NN (top-10 ANOVA) | 0.511                      | 0.456             | 0.480             |
 | Logistic Regression | 0.452                      | 0.427             | 0.449             |
-
 
 XGBoost and LightGBM were added after the split was fixed, so they have no leaked-holdout number. k-NN dropped the most (−7.3 points), which is what you would expect if the old test set contained neighbors from the same artist.
 
@@ -48,11 +46,11 @@ pip install -r requirements.txt
 From the repo root:
 
 ```bash
-python -m src.basepipeline
+python3 -m src.basepipeline
+
 ```
 
 ## Repo layout
-
 
 | Path                  | Role                                                                               |
 | --------------------- | ---------------------------------------------------------------------------------- |
@@ -63,5 +61,3 @@ python -m src.basepipeline
 | `src/evaluate.py`     | Test reports, confusion matrix, grouped CV                                         |
 | `src/basepipeline.py` | End-to-end entry point                                                             |
 | `src/utils.py`        | FMA metadata loader and mp3 path helper                                            |
-
-

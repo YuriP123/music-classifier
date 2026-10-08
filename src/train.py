@@ -1,6 +1,5 @@
 """Model definitions, training, and artifact persistence."""
 import pickle
-
 import pandas as pd
 from lightgbm import LGBMClassifier
 from sklearn.ensemble import RandomForestClassifier
@@ -52,11 +51,12 @@ def build_models() -> dict:
             max_depth=6,
             random_state=RNG,
             n_jobs=-1,
+            verbosity=-1,
         ),
     }
 
 
-def fit_selector(splits: Splits, feature_cols: list[str]) -> SelectKBest:
+def fit_selector(splits: Splits, feature_cols: list[str], genre: str) -> SelectKBest:
     selector = SelectKBest(score_func=f_classif, k=KBEST_K).fit(splits.Xtrain, splits.ytrain)
     report = (
         pd.DataFrame({
@@ -68,11 +68,16 @@ def fit_selector(splits: Splits, feature_cols: list[str]) -> SelectKBest:
         .sort_values("f_score", ascending=False)
         .reset_index(drop=True)
     )
-    report.to_csv(SELECTED_FEATURES_CSV, index=False)
+    report.to_csv(
+         SELECTED_FEATURES_CSV.with_name(
+             f"selected_features_top10_{genre}.csv"
+         ),
+         index=False,
+    )
     return selector
 
 
-def save_artifact(name: str, model, splits: Splits, feature_cols: list[str], selector=None):
+def save_artifact(name: str, model, splits: Splits, genre: str, feature_cols: list[str], selector=None):
     payload = {
         "model": model,
         "scaler": splits.scaler,
@@ -84,20 +89,23 @@ def save_artifact(name: str, model, splits: Splits, feature_cols: list[str], sel
         payload["features"] = [
             c for c, keep in zip(feature_cols, selector.get_support()) if keep
         ]
-    path = MODELS_DIR / f"{name}.pkl"
+    path = MODELS_DIR / f"{name}_{genre}.pkl"
     with open(path, "wb") as f:
         pickle.dump(payload, f)
     return path
 
 
-def train_all(splits: Splits, feature_cols: list[str]) -> dict:
-    selector = fit_selector(splits, feature_cols)
+def train_all(splits: Splits, feature_cols: list[str], genre: str) -> dict:
+    selector = fit_selector(splits, feature_cols, genre)
     trained = {}
     for name, model in build_models().items():
-        uses_selector = name == SELECTED_MODEL
-        Xfit = selector.transform(splits.Xtrain) if uses_selector else splits.Xtrain
-        print(f"Training {name} ...")
-        model.fit(Xfit, splits.ytrain)
-        save_artifact(name, model, splits, feature_cols, selector if uses_selector else None)
-        trained[name] = {"model": model, "selector": selector if uses_selector else None}
+        if name == "M7_lgbm":
+            uses_selector = name == SELECTED_MODEL
+            Xfit = selector.transform(splits.Xtrain) if uses_selector else splits.Xtrain
+            print(f"Training {name}_{genre}...")
+            model.fit(Xfit, splits.ytrain)
+            save_artifact(name, model, splits, genre, feature_cols, selector if uses_selector else None)
+            trained[name] = {"model": model, "selector": selector if uses_selector else None}
+        else:
+            pass
     return trained

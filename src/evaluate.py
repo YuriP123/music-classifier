@@ -20,7 +20,7 @@ from src.data import Splits
 from src.train import SELECTED_MODEL, build_models
 
 
-def evaluate_model(name, model, X_eval, y_eval_enc, label_encoder, verbose=True):
+def evaluate_model(name, genre,model, X_eval, y_eval_enc, label_encoder, verbose=True):
     y_pred = model.predict(X_eval)
     acc = accuracy_score(y_eval_enc, y_pred)
     macro_p, macro_r, macro_f1, _ = precision_recall_fscore_support(
@@ -35,7 +35,7 @@ def evaluate_model(name, model, X_eval, y_eval_enc, label_encoder, verbose=True)
     )
     if verbose:
         print(
-            f"\n=== {name} - accuracy: {acc:.4f} | macro F1: {macro_f1:.4f} "
+            f"\n=== {name}_{genre}- accuracy: {acc:.4f} | macro F1: {macro_f1:.4f} "
             f"| weighted F1: {weighted_f1:.4f} ==="
         )
         print(classification_report(y_eval_enc, y_pred, **report_kwargs))
@@ -53,7 +53,7 @@ def evaluate_model(name, model, X_eval, y_eval_enc, label_encoder, verbose=True)
     }
 
 
-def evaluate_all(trained: dict, splits: Splits):
+def evaluate_all(trained: dict, splits: Splits, genre: str):
     results = []
     for name, entry in trained.items():
         X_eval = (
@@ -62,7 +62,7 @@ def evaluate_all(trained: dict, splits: Splits):
             else splits.Xtest
         )
         results.append(
-            evaluate_model(name, entry["model"], X_eval, splits.ytest, splits.label_encoder)
+            evaluate_model(name, genre, entry["model"], X_eval, splits.ytest, splits.label_encoder)
         )
 
     summary = (
@@ -75,7 +75,10 @@ def evaluate_all(trained: dict, splits: Splits):
         .sort_values("accuracy", ascending=False)
         .reset_index(drop=True)
     )
-    summary.to_csv(TEST_SUMMARY_CSV, index=False)
+    summary.to_csv(
+         OUTPUTS_DIR / f"test_summary_{genre}.csv",
+         index=False,
+    )
     return results, summary
 
 
